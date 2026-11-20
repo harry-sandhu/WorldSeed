@@ -5,7 +5,7 @@ export class SimulationWorker {
   public constructor(private readonly store: JobStore, private readonly options: WorkerOptions) {}
 
   public async runNext(): Promise<boolean> {
-    const job = await this.store.claim(this.options.workerId, this.options.leaseMs);
+    const job = await this.store.claim(this.options.workerId, this.options.leaseMs, this.options.runId);
     if (!job) return false;
     try {
       const engine = new SimulationEngine(job.config, job.checkpoint?.state);

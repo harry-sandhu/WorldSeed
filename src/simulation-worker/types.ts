@@ -30,7 +30,7 @@ export interface JobProgress {
 
 export interface JobStore {
   enqueue(job: SimulationJob): Promise<void>;
-  claim(workerId: string, leaseMs: number): Promise<SimulationJob | null>;
+  claim(workerId: string, leaseMs: number, runId?: JobId): Promise<SimulationJob | null>;
   save(job: SimulationJob): Promise<void>;
   get(jobId: JobId): Promise<SimulationJob | null>;
   requestCancellation(jobId: JobId): Promise<boolean>;
@@ -39,5 +39,6 @@ export interface JobStore {
 export interface WorkerOptions {
   readonly workerId: string;
   readonly leaseMs: number;
+  readonly runId?: JobId;
   readonly onProgress?: (progress: JobProgress) => Promise<void> | void;
 }

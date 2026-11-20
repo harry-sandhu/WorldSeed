@@ -6,11 +6,11 @@ export class InMemoryJobStore implements JobStore {
 
   public async enqueue(job: SimulationJob): Promise<void> { this.jobs.set(job.id, structuredClone(job)); }
 
-  public async claim(workerId: string, leaseMs: number): Promise<SimulationJob | null> {
+  public async claim(workerId: string, leaseMs: number, runId?: JobId): Promise<SimulationJob | null> {
     const now = Date.now();
     for (const job of this.jobs.values()) {
       const leaseExpired = job.leaseUntil !== null && job.leaseUntil <= now;
-      if ((job.status === "queued" || (job.status === "running" && leaseExpired)) && job.attempt < job.maxAttempts) {
+      if ((!runId || job.id === runId) && (job.status === "queued" || (job.status === "running" && leaseExpired)) && job.attempt < job.maxAttempts) {
         job.status = "running";
         job.attempt += 1;
         job.leaseUntil = now + leaseMs;
