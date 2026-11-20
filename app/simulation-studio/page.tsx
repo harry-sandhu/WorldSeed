@@ -35,7 +35,8 @@ export default function SimulationStudioPage() {
     const world = selected.config.world ?? {}; const ticksNumber = Number(ticks); const seedNumber = Number(seed); const supabase = createBrowserSupabaseClient(); const auth = await supabase.auth.getUser();
     if (!auth.data.user) { window.location.assign("/login"); return; }
     const config = { seed: seedNumber, tickRate: 10, world: { width: world.width ?? 64, height: world.height ?? 64, initialResources: { food: world.resources?.food ?? 10000, water: world.resources?.water ?? 10000, energy: world.resources?.energy ?? 3000 }, regeneration: { food: 2, water: 2, energy: 0 }, initialAgents: world.initialAgents ?? 100, reproductionAge: 20, reproductionEnergy: 70, maxAge: 100 } };
-    const result = await supabase.from("simulation_runs").insert({ universe_id: universeId, created_by: auth.data.user.id, status: "queued", config, seed: seedNumber, total_ticks: ticksNumber, checkpoint_every: 25, max_attempts: 3 }).select("id,status,seed,total_ticks,completed_ticks,created_at").single();
+    const checkpointEvery = Math.max(25, Math.ceil(ticksNumber / 100));
+    const result = await supabase.from("simulation_runs").insert({ universe_id: universeId, created_by: auth.data.user.id, status: "queued", config, seed: seedNumber, total_ticks: ticksNumber, checkpoint_every: checkpointEvery, max_attempts: 3 }).select("id,status,seed,total_ticks,completed_ticks,created_at").single();
     if (result.error) setError(result.error.message); else { setRuns((previous) => [result.data as Run, ...previous]); setMessage("Run queued. The simulation worker can now claim it."); }
     setBusy(false);
   }
