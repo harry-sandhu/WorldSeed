@@ -31,7 +31,8 @@ export default function WorldBuilderPage() {
       if (universe.error) throw universe.error;
       setMessage(`Universe created: ${universe.data.id}`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to create universe.");
+      const details = typeof cause === "object" && cause !== null && "message" in cause ? String(cause.message) : cause instanceof Error ? cause.message : "Unable to create universe.";
+      setError(details);
     } finally { setBusy(false); }
   }
 
