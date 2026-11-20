@@ -2,6 +2,8 @@
 
 A seeded multi-agent simulation platform. Define a world, queue a run, and watch a deterministic population of agents live, reproduce, and die off resource scarcity — then compare runs, branch from any checkpoint, and inspect the evidence.
 
+Live at [worldseed-alpha.vercel.app](https://worldseed-alpha.vercel.app). MIT licensed — see [LICENSE](LICENSE).
+
 ## How it fits together
 
 - **Web app** (`app/`) — Next.js. Lets you build worlds, queue runs, and browse analytics/timeline/experiment views over persisted state. Never computes simulation ticks itself.
