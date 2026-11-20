@@ -29,7 +29,7 @@ export default function WorldBuilderPage() {
       if (membership.error) throw membership.error;
       const universe = await supabase.from("universes").insert({ workspace_id: workspace.data.id, created_by: user.id, name, description, config: { version: 1, world: { width: Number(width), height: Number(height), initialAgents: Number(agents), terrain: "temperate", climate: "stable", resources: { food: 10000, water: 10000, energy: 3000 } } } }).select("id").single();
       if (universe.error) throw universe.error;
-      setMessage(`Universe created: ${universe.data.id}`);
+      window.location.assign(`/simulation-studio?universe=${universe.data.id}`);
     } catch (cause) {
       const details = typeof cause === "object" && cause !== null && "message" in cause ? String(cause.message) : cause instanceof Error ? cause.message : "Unable to create universe.";
       setError(details);
