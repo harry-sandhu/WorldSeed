@@ -37,6 +37,8 @@ h1 { margin: 8px 0 10px; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.04
 .empty { padding: 28px 0 10px; color: var(--muted); }
 .auth { display: grid; min-height: 100vh; place-items: center; padding: 24px; }
 .auth-card { width: min(420px, 100%); padding: 34px; border: 1px solid var(--line); background: var(--panel); border-radius: 7px; }
+.world-canvas { position: relative; overflow: hidden; display: grid; place-items: center; min-height: 420px; border: 1px solid var(--line); background-color: #091117; background-image: linear-gradient(#172832 1px, transparent 1px), linear-gradient(90deg, #172832 1px, transparent 1px); background-size: 24px 24px; }
+.agent-dot { position: absolute; width: 7px; height: 7px; margin: -3px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px rgba(97, 215, 209, .65); }
 .auth-card h1 { font-size: 30px; }
 .field { display: grid; gap: 7px; margin: 16px 0; color: var(--muted); font-size: 13px; }
 .field input { width: 100%; border: 1px solid var(--line); border-radius: 4px; padding: 12px; background: var(--bg); color: var(--text); outline: none; }
