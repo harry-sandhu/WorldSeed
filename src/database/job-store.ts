@@ -52,8 +52,8 @@ export class SupabaseJobStore implements JobStore {
     if (error) throw error;
   }
 
-  public async claim(workerId: string, leaseMs: number): Promise<SimulationJob | null> {
-    const { data, error } = await this.client.rpc("claim_simulation_run", { p_worker_id: workerId, p_lease_seconds: Math.ceil(leaseMs / 1000) }).single();
+  public async claim(workerId: string, leaseMs: number, runId?: JobId): Promise<SimulationJob | null> {
+    const { data, error } = await this.client.rpc("claim_simulation_run", { p_worker_id: workerId, p_lease_seconds: Math.ceil(leaseMs / 1000), p_run_id: runId ?? null }).single();
     if (error && error.code === "PGRST116") return null;
     if (error) throw error;
     if (!data) return null;
