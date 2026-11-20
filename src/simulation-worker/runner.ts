@@ -11,17 +11,18 @@ export class SimulationWorker {
       const engine = new SimulationEngine(job.config, job.checkpoint?.state);
       const remaining = job.totalTicks - job.completedTicks;
       for (let index = 0; index < remaining; index += 1) {
-        const current = await this.store.get(job.id);
-        if (current?.cancelRequested) {
-          job.status = "cancelled";
-          job.leaseUntil = null;
-          await this.store.save(job);
-          await this.publish(job.id, job.completedTicks, job.totalTicks, "cancelled", []);
-          return true;
-        }
         const events = engine.step();
         job.completedTicks += 1;
-        if (job.completedTicks % job.checkpointEvery === 0 || job.completedTicks === job.totalTicks) {
+        const shouldCheckpoint = job.completedTicks % job.checkpointEvery === 0 || job.completedTicks === job.totalTicks;
+        if (shouldCheckpoint) {
+          const current = await this.store.get(job.id);
+          if (current?.cancelRequested) {
+            job.status = "cancelled";
+            job.leaseUntil = null;
+            await this.store.save(job);
+            await this.publish(job.id, job.completedTicks, job.totalTicks, "cancelled", []);
+            return true;
+          }
           job.checkpoint = engine.checkpoint();
           job.leaseUntil = Date.now() + this.options.leaseMs;
           await this.store.save(job);
