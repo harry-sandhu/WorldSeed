@@ -25,3 +25,5 @@ $$;
 
 revoke all on function public.claim_simulation_run(text, integer, uuid) from public, anon, authenticated;
 grant execute on function public.claim_simulation_run(text, integer, uuid) to service_role;
+
+notify pgrst, 'reload schema';
