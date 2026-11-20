@@ -71,6 +71,14 @@ export class SupabaseJobStore implements JobStore {
     if (job.checkpoint) {
       const checkpoint = await this.client.from("simulation_checkpoints").upsert({ run_id: job.id, tick: job.checkpoint.tick, state: job.checkpoint.state }, { onConflict: "run_id,tick" });
       if (checkpoint.error) throw checkpoint.error;
+      const { tick, state } = job.checkpoint;
+      const summary = await this.client.from("simulation_run_summaries").upsert({
+        run_id: job.id, tick,
+        population: state.agents.filter((agent) => agent.alive).length,
+        food: state.resources.food, water: state.resources.water, energy: state.resources.energy,
+        updated_at: new Date().toISOString()
+      }, { onConflict: "run_id" });
+      if (summary.error) throw summary.error;
     }
   }
 

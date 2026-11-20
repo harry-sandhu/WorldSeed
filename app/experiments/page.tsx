@@ -8,22 +8,22 @@ import { createBrowserSupabaseClient } from "../../src/database/browser-client";
 const PAGE_SIZE = 25;
 
 interface Run { id: string; status: string; seed: number; total_ticks: number; completed_ticks: number; created_at: string; }
-interface Checkpoint { run_id: string; tick: number; state: { agents?: { alive?: boolean }[]; resources?: { food?: number; water?: number; energy?: number } }; }
+interface Summary { run_id: string; tick: number; population: number; food: number; }
 
 function average(values: number[]): number { return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0; }
 function median(values: number[]): number { if (!values.length) return 0; const sorted = [...values].sort((a, b) => a - b); const middle = Math.floor(sorted.length / 2); return sorted.length % 2 ? sorted[middle] ?? 0 : ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2; }
 function deviation(values: number[]): number { const mean = average(values); return values.length ? Math.sqrt(average(values.map((value) => (value - mean) ** 2))) : 0; }
 
-async function loadCheckpointsFor(runs: Run[]): Promise<Checkpoint[]> {
+async function loadSummariesFor(runs: Run[]): Promise<Summary[]> {
   if (!runs.length) return [];
-  const result = await createBrowserSupabaseClient().from("simulation_checkpoints").select("run_id,tick,state").in("run_id", runs.map((run) => run.id)).order("tick", { ascending: false }).limit(1000);
+  const result = await createBrowserSupabaseClient().from("simulation_run_summaries").select("run_id,tick,population,food").in("run_id", runs.map((run) => run.id));
   if (result.error) throw new Error(result.error.message);
-  return (result.data ?? []) as Checkpoint[];
+  return (result.data ?? []) as Summary[];
 }
 
 export default function ExperimentsPage() {
   const [runs, setRuns] = useState<Run[]>([]);
-  const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
+  const [summaries, setSummaries] = useState<Summary[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -40,7 +40,7 @@ export default function ExperimentsPage() {
       const list = (runResult.data ?? []) as Run[];
       setRuns(list);
       setHasMore(list.length === PAGE_SIZE);
-      try { setCheckpoints(await loadCheckpointsFor(list)); } catch (checkpointError) { setError((checkpointError as Error).message); }
+      try { setSummaries(await loadSummariesFor(list)); } catch (summaryError) { setError((summaryError as Error).message); }
       setLoading(false);
     }
     void load();
@@ -57,12 +57,12 @@ export default function ExperimentsPage() {
     const nextPage = (runResult.data ?? []) as Run[];
     setRuns((current) => [...current, ...nextPage]);
     setHasMore(nextPage.length === PAGE_SIZE);
-    try { const more = await loadCheckpointsFor(nextPage); setCheckpoints((current) => [...current, ...more]); } catch (checkpointError) { setError((checkpointError as Error).message); }
+    try { const more = await loadSummariesFor(nextPage); setSummaries((current) => [...current, ...more]); } catch (summaryError) { setError((summaryError as Error).message); }
     setLoadingMore(false);
   }, [runs]);
 
-  const finalByRun = useMemo(() => { const result = new Map<string, Checkpoint>(); for (const checkpoint of checkpoints) if (!result.has(checkpoint.run_id)) result.set(checkpoint.run_id, checkpoint); return result; }, [checkpoints]);
-  const selectedCheckpoints = selected.map((id) => finalByRun.get(id)).filter((checkpoint): checkpoint is Checkpoint => Boolean(checkpoint)); const populations = selectedCheckpoints.map((checkpoint) => checkpoint.state.agents?.filter((agent) => agent.alive !== false).length ?? 0); const food = selectedCheckpoints.map((checkpoint) => checkpoint.state.resources?.food ?? 0);
+  const summaryByRun = useMemo(() => new Map(summaries.map((summary) => [summary.run_id, summary])), [summaries]);
+  const selectedSummaries = selected.map((id) => summaryByRun.get(id)).filter((summary): summary is Summary => Boolean(summary)); const populations = selectedSummaries.map((summary) => summary.population); const food = selectedSummaries.map((summary) => summary.food);
   function toggle(id: string) { setSelected((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]); }
-  return <LabShell><main className="main"><div className="topline"><div><div className="eyebrow">Side-by-side</div><h1>Compare outcomes.</h1><p className="lede">Select completed seeded runs and compare summaries from their final persisted checkpoints.</p></div><Link className="button secondary" href="/simulation-studio">Run another scenario</Link></div>{error && <p className="error">{error}</p>}<section className="card"><div className="card-heading"><h2>Completed runs</h2><span className="tag">{runs.length}{hasMore ? "+" : ""} entries</span></div>{!loading && runs.length === 0 && <div className="empty">Complete multiple runs to compare outcomes here.</div>}{runs.map((run) => <label className="universe-row" key={run.id} style={{ cursor: "pointer" }}><div><div className="universe-name mono">{run.id.slice(0, 8)}</div><div className="universe-meta">Seed {run.seed}, {run.completed_ticks}/{run.total_ticks} ticks, final checkpoint {finalByRun.get(run.id)?.tick ?? "—"}</div></div><input type="checkbox" checked={selected.includes(run.id)} onChange={() => toggle(run.id)} /></label>)}{hasMore && <button className="button secondary" disabled={loadingMore} onClick={() => void loadMore()} style={{ marginTop: 12 }}>{loadingMore ? "Loading…" : "Load more"}</button>}</section><section className="card"><div className="card-heading"><h2>Statistical summary</h2><span className="tag">{selected.length} selected</span></div>{!selected.length ? <div className="empty">Select at least one completed run.</div> : <div className="grid"><div className="stat"><div className="stat-label">Population mean</div><div className="stat-value">{average(populations).toFixed(1)}</div></div><div className="stat"><div className="stat-label">Population median</div><div className="stat-value">{median(populations).toFixed(1)}</div></div><div className="stat"><div className="stat-label">Population std dev</div><div className="stat-value">{deviation(populations).toFixed(1)}</div></div><div className="stat"><div className="stat-label">Food mean</div><div className="stat-value">{average(food).toFixed(1)}</div></div></div>}</section></main></LabShell>;
+  return <LabShell><main className="main"><div className="topline"><div><div className="eyebrow">Side-by-side</div><h1>Compare outcomes.</h1><p className="lede">Select completed seeded runs and compare summaries from their final persisted checkpoints.</p></div><Link className="button secondary" href="/simulation-studio">Run another scenario</Link></div>{error && <p className="error">{error}</p>}<section className="card"><div className="card-heading"><h2>Completed runs</h2><span className="tag">{runs.length}{hasMore ? "+" : ""} entries</span></div>{!loading && runs.length === 0 && <div className="empty">Complete multiple runs to compare outcomes here.</div>}{runs.map((run) => <label className="universe-row" key={run.id} style={{ cursor: "pointer" }}><div><div className="universe-name mono">{run.id.slice(0, 8)}</div><div className="universe-meta">Seed {run.seed}, {run.completed_ticks}/{run.total_ticks} ticks, final checkpoint {summaryByRun.get(run.id)?.tick ?? "—"}</div></div><input type="checkbox" checked={selected.includes(run.id)} onChange={() => toggle(run.id)} /></label>)}{hasMore && <button className="button secondary" disabled={loadingMore} onClick={() => void loadMore()} style={{ marginTop: 12 }}>{loadingMore ? "Loading…" : "Load more"}</button>}</section><section className="card"><div className="card-heading"><h2>Statistical summary</h2><span className="tag">{selected.length} selected</span></div>{!selected.length ? <div className="empty">Select at least one completed run.</div> : <div className="grid"><div className="stat"><div className="stat-label">Population mean</div><div className="stat-value">{average(populations).toFixed(1)}</div></div><div className="stat"><div className="stat-label">Population median</div><div className="stat-value">{median(populations).toFixed(1)}</div></div><div className="stat"><div className="stat-label">Population std dev</div><div className="stat-value">{deviation(populations).toFixed(1)}</div></div><div className="stat"><div className="stat-label">Food mean</div><div className="stat-value">{average(food).toFixed(1)}</div></div></div>}</section></main></LabShell>;
 }

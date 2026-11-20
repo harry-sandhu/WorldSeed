@@ -21,4 +21,4 @@ Turn completed simulation runs into inspectable evidence. Researchers should be 
 
 ## Current limitation
 
-The first UI pass uses checkpoint snapshots and client-side aggregation. Large-run analytics should move to worker-produced summary rows before production scale.
+Experiments, dashboard, and simulation-studio's run list now read from the worker-maintained `simulation_run_summaries` table (one small numeric row per run) instead of fetching full checkpoint state. The analytics trend chart still reads raw checkpoints, since it genuinely needs per-tick history — that one isn't a scale concern in the same way, since it's bounded by however many checkpoints a single run produces, not by population size.
