@@ -1,0 +1,18 @@
+services:
+  - type: worker
+    name: worldseed-simulation-worker
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci
+    startCommand: npm run worker:loop
+    autoDeployTrigger: commit
+    envVars:
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: WORLDSEED_WORKER_ID
+        value: render-worker-1
